@@ -7,17 +7,26 @@
  */
 
 export default async function handler(req, res) {
-  const keyword = req.query.keyword || "roblox";
+  const placeId = req.query.placeId || "1818";
 
   try {
-    const response = await fetch(
-      `https://games.roblox.com/v1/games/list?keyword=${keyword}&limit=50&sortOrder=Asc`
+    // Step 1: get universe ID
+    const u = await fetch(
+      `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
     );
+    const uData = await u.json();
 
-    const data = await response.json();
+    const universeId = uData.universeId;
 
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch Roblox API" });
+    // Step 2: get game info
+    const g = await fetch(
+      `https://games.roblox.com/v1/games?universeIds=${universeId}`
+    );
+    const gData = await g.json();
+
+    res.status(200).json(gData);
+
+  } catch (err) {
+    res.status(500).json({ error: err.toString() });
   }
 }
