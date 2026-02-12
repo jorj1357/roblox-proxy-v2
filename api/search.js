@@ -10,19 +10,25 @@ export default async function handler(req, res) {
   const placeId = req.query.placeId || "1818";
 
   try {
-    // Step 1: get universe ID x
-    const u = await fetch(
+    // Step 1: get universe ID
+    const uResponse = await fetch(
       `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
     );
-    const uData = await u.json();
+
+    const uData = await uResponse.json();
+
+    if (!uData.universeId) {
+      return res.status(200).json({ error: "Invalid place ID" });
+    }
 
     const universeId = uData.universeId;
 
-    // Step 2: get game info
-    const g = await fetch(
+    // Step 2: get game metadata
+    const gResponse = await fetch(
       `https://games.roblox.com/v1/games?universeIds=${universeId}`
     );
-    const gData = await g.json();
+
+    const gData = await gResponse.json();
 
     res.status(200).json(gData);
 
