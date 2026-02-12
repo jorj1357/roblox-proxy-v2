@@ -7,30 +7,50 @@
  */
 
 export default async function handler(req, res) {
-  const placeId = req.query.placeId || "1818";
+  const minYear = 2008;
+  const maxYear = 2014;
+  const minVisits = 10000;
+  const keyword = "obby";
 
   try {
-    // Step 1: get universe ID
-    const uResponse = await fetch(
-      `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
-    );
+    while (true) {
+      // pick random place id
+      const placeId = Math.floor(Math.random() * 400000000);
 
-    const uData = await uResponse.json();
+      // Step 1: universe lookup
+      const u = await fetch(
+        `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
+      );
+      const uData = await u.json();
 
-    if (!uData.universeId) {
-      return res.status(200).json({ error: "Invalid place ID" });
+      if (!uData.universeId) continue;
+
+      // Step 2: metadata fetch
+      const g = await fetch(
+        `https://games.roblox.com/v1/games?universeIds=${uData.universeId}`
+      );
+      const gData = await g.json();
+
+      if (!gData.data || gData.data.length === 0) continue;
+
+      const game = gData.data[0];
+
+      // extract values
+      const createdYear = new Date(game.created).getFullYear();
+      const updatedYear = new Date(game.updated).getFullYear();
+      const title = game.name.toLowerCase();
+
+      // FILTER CONDITIONS
+      if (
+        createdYear >= minYear &&
+        createdYear <= maxYear &&
+        updatedYear <= maxYear &&
+        game.visits >= minVisits &&
+        title.includes(keyword)
+      ) {
+        return res.status(200).json(game);
+      }
     }
-
-    const universeId = uData.universeId;
-
-    // Step 2: get game metadata
-    const gResponse = await fetch(
-      `https://games.roblox.com/v1/games?universeIds=${universeId}`
-    );
-
-    const gData = await gResponse.json();
-
-    res.status(200).json(gData);
 
   } catch (err) {
     res.status(500).json({ error: err.toString() });
