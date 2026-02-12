@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const placeId = req.query.placeId || "1818";
 
   try {
-    // Step 1: get universe ID
+    // Step 1: get universe ID x
     const u = await fetch(
       `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
     );
