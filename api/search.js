@@ -4,55 +4,31 @@
  * purpose
  * file to make it so we can talk to roblox api server
  * so that the place roulette gaem im making works 
+ * save the results we get to games.json in our same folder we're in rn 
  */
 
-export default async function handler(req, res) {
-  const minYear = 2008;
-  const maxYear = 2014;
-  const minVisits = 10000;
-  const keyword = "obby";
+import fs from "fs";
 
-  try {
-    while (true) {
-      // pick random place id
-      const placeId = Math.floor(Math.random() * 400000000);
+export default function handler(req, res) {
+  const minYear = parseInt(req.query.minYear || "2008");
+  const maxYear = parseInt(req.query.maxYear || "2014");
+  const minVisits = parseInt(req.query.minVisits || "10000");
+  const keyword = (req.query.keyword || "").toLowerCase();
 
-      // Step 1: universe lookup
-      const u = await fetch(
-        `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
-      );
-      const uData = await u.json();
+  const data = JSON.parse(fs.readFileSync("./games.json"));
 
-      if (!uData.universeId) continue;
+  const results = data.filter(game => {
+    const created = new Date(game.created).getFullYear();
+    const updated = new Date(game.updated).getFullYear();
 
-      // Step 2: metadata fetch
-      const g = await fetch(
-        `https://games.roblox.com/v1/games?universeIds=${uData.universeId}`
-      );
-      const gData = await g.json();
+    return (
+      created >= minYear &&
+      created <= maxYear &&
+      updated <= maxYear &&
+      game.visits >= minVisits &&
+      game.name.toLowerCase().includes(keyword)
+    );
+  });
 
-      if (!gData.data || gData.data.length === 0) continue;
-
-      const game = gData.data[0];
-
-      // extract values
-      const createdYear = new Date(game.created).getFullYear();
-      const updatedYear = new Date(game.updated).getFullYear();
-      const title = game.name.toLowerCase();
-
-      // FILTER CONDITIONS
-      if (
-        createdYear >= minYear &&
-        createdYear <= maxYear &&
-        updatedYear <= maxYear &&
-        game.visits >= minVisits &&
-        title.includes(keyword)
-      ) {
-        return res.status(200).json(game);
-      }
-    }
-
-  } catch (err) {
-    res.status(500).json({ error: err.toString() });
-  }
+  res.status(200).json(results.slice(0, 50));
 }
